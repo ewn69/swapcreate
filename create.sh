@@ -5,7 +5,7 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-echo "How many GB of swap space do you want to create?"
+echo "How many GB of swap space do you want to create? [ ex: 8 ]"
 read swap_size
 
 echo "Do you want to create a $swap_size GB swap file? [Y/N]"
