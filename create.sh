@@ -116,4 +116,7 @@ echo "* Free Disk Space:"
 df -h --output=avail /
 
 # Success message
-echo "[ ! ] - Swap file created successfully!"
+  echo "[ ! ] - Swap file created successfully!"
+else
+  echo "Cancelled."
+fi
