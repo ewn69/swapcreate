@@ -45,8 +45,8 @@ fi
 
 # Check if swap file already exists
 if [ -f "/swapfile" ]; then
-  echo "* Swap file /swapfile already exists. Do you want to remove and recreate it? [Y/N]: "
-  read -p "* Input: " confirmation
+  echo "* Swap file /swapfile already exists. Do you want to remove and recreate it?"
+  read -p "* Input [Y/N]: " confirmation
   if [ "$confirmation" != "Y" ] && [ "$confirmation" != "y" ]; then
     echo "* Cancelled."
     exit 0
@@ -71,8 +71,8 @@ show_free_disk_space() {
 }
 
 # Ask user for swap size
-echo "* How many GB of swap space do you want to create? [ ex: 8 ] | Input 1-128: "
-read -p "* Input: " swap_size
+echo "* How many GB of swap space do you want to create? [ ex: 8 ]"
+read -p "* Input 1-128: " swap_size
 
 # Validate swap size
 if ! [[ "$swap_size" =~ ^[1-9][0-9]?$|^128$ ]]; then
@@ -81,8 +81,8 @@ if ! [[ "$swap_size" =~ ^[1-9][0-9]?$|^128$ ]]; then
 fi
 
 # Confirm swap creation
-echo "* Do you want to create a $swap_size GB swap file? [Y/N]: "
-read -p "* Input: " confirmation
+echo "* Do you want to create a $swap_size GB swap file?"
+read -p "* Input [Y/N]: " confirmation
 
 if [ "$confirmation" = "Y" ] || [ "$confirmation" = "y" ]; then
   # Create swap file
