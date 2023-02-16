@@ -97,7 +97,7 @@ if [ "$confirmation" = "Y" ] || [ "$confirmation" = "y" ]; then
     echo "* Failed to format swap file."
     exit 1
   fi
-
+  
 # Enable swap file and set to mount on boot
 if ! swapon /swapfile &> /dev/null; then
   echo "Failed to enable swap file."
@@ -116,7 +116,5 @@ echo "* Free Disk Space:"
 df -h --output=avail /
 
 # Success message
-  echo "[ ! ] - Swap file created successfully!"
-else
-  echo "Cancelled."
+echo "[ ! ] - Swap file created successfully!"
 fi
