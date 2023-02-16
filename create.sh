@@ -18,23 +18,39 @@ fi
 
 # Function to show free memory
 show_free_memory() {
+  echo "=========================================="
   echo "Free Memory:"
   free -m
+  echo "=========================================="
 }
 
-# Function to show free disk space in GB
+# Function to show free disk space
 show_free_disk_space() {
+  echo "=========================================="
   echo "Free Disk Space:"
-  df -h --output=avail /
+  df -h | awk '$NF=="/"{printf "%s", $4}'
+  echo ""
+  echo "=========================================="
 }
 
 # Ask user for swap size
 echo "How many GB of swap space do you want to create? [ ex: 8 ]"
 read swap_size
 
-# Check if swap size is within limit (128 GB)
+# Validate input swap size
+if ! [[ "$swap_size" =~ ^[0-9]+$ ]]; then
+  echo "Invalid input. Please enter a valid integer."
+  exit 1
+fi
+
 if [ "$swap_size" -gt 128 ]; then
-  echo "Swap size cannot be more than 128 GB."
+  echo "Swap size cannot exceed 128GB."
+  exit 1
+fi
+
+# Check disk space availability
+if ! df / | awk '{print $4}' | tail -1 | awk '{ if ($1 < '$swap_size'000000) exit 1 }'; then
+  echo "Not enough disk space available for swap creation."
   exit 1
 fi
 
@@ -43,15 +59,6 @@ echo "Do you want to create a $swap_size GB swap file? [Y/N]"
 read confirmation
 
 if [ "$confirmation" = "Y" ] || [ "$confirmation" = "y" ]; then
-  # Check if enough disk space is available
-  required_disk_space=$((swap_size*2)) # Double swap size for safety margin
-  available_disk_space=$(df --output=avail / | tail -n 1)
-  if [ "$required_disk_space" -gt "$available_disk_space" ]; then
-    echo "Not enough free disk space available to create swap file."
-    show_free_disk_space
-    exit 1
-  fi
-
   # Create swap file
   if ! fallocate -l "$swap_size"G /swapfile &> /dev/null; then
     echo "Failed to create swap file."
@@ -72,11 +79,11 @@ if [ "$confirmation" = "Y" ] || [ "$confirmation" = "y" ]; then
   fi
   echo "/swapfile swap swap defaults 0 0" | tee -a /etc/fstab &> /dev/null
   
-  # Show free memory and disk space
+  # Show free memory and free disk space
   show_free_memory
   show_free_disk_space
   
-  echo "Swap file created successfully!"
+  echo "[ ! ] - Swap file created successfully!"
 else
   echo "Cancelled."
 fi
