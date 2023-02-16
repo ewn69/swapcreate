@@ -1,69 +1,100 @@
 #!/bin/bash
 
-# Function to show system info
-show_system_info() {
-  echo "######################################################################"
-  echo "* SwapCreate @ v69.9"
-  echo "*"
-  echo "* Made by ewn"
-  echo "*"
-  echo "* Running on $(lsb_release -ds)"
-  echo "######################################################################"
-  echo
+# Check Ubuntu or Debian version
+get_os_version() {
+  if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    if [[ "${ID}" == "ubuntu" ]]; then
+      echo "Ubuntu ${VERSION_ID}"
+    elif [[ "${ID}" == "debian" ]]; then
+      echo "Debian ${VERSION_ID}"
+    else
+      echo "Unsupported distribution."
+      exit 1
+    fi
+  else
+    echo "Unsupported distribution."
+    exit 1
+  fi
 }
 
-# Check system info
-show_system_info
+# Print header
+echo "######################################################################"
+echo "* SwapCreate @ v69.9"
+echo "*"
+echo "* Made by ewn"
+echo "*"
+echo "* Running $(get_os_version)."
+echo "######################################################################"
+
+# Check if script is run as root
+if [ "$EUID" -ne 0 ]; then
+  echo "* This script must be run as root."
+  exit 1
+fi
+
+# Check if fallocate is installed, and install if not
+if ! command -v fallocate &> /dev/null; then
+  echo "* fallocate is not installed. Installing Coreutils..."
+  apt-get update &> /dev/null && apt-get install -y coreutils &> /dev/null
+  if [ $? -ne 0 ]; then
+    echo "* Failed to install fallocate."
+    exit 1
+  fi
+fi
+
+# Check if swap file already exists
+if [ -f "/swapfile" ]; then
+  echo "* Swap file /swapfile already exists. Do you want to remove and recreate it? [Y/N]: "
+  read confirmation
+  if [ "$confirmation" != "Y" ] && [ "$confirmation" != "y" ]; then
+    echo "* Cancelled."
+    exit 0
+  fi
+  sudo swapoff /swapfile &> /dev/null
+  sudo rm /swapfile &> /dev/null
+  sudo sed -i '/\/swapfile/d' /etc/fstab &> /dev/null
+fi
 
 # Function to show free memory
 show_free_memory() {
-  echo "=========================================="
+  echo "* =========================================="
   echo "* Free Memory:"
   free -m
-  echo "=========================================="
 }
 
 # Function to show free disk space
 show_free_disk_space() {
-  echo "=========================================="
+  echo "* =========================================="
   echo "* Free Disk Space:"
-  df -h | awk '$NF=="/"{printf "%s\n", $4}'
-  echo "=========================================="
+  df -h --output=avail /
 }
 
 # Ask user for swap size
-echo "* How many GB of swap space do you want to create? [ ex: 8 ] | Input 1-128:"
+echo "* How many GB of swap space do you want to create? [ ex: 8 ] | Input 1-128: "
 read swap_size
 
-# Validate input
+# Validate swap size
 if ! [[ "$swap_size" =~ ^[1-9][0-9]?$|^128$ ]]; then
-  echo "Invalid input. Please enter a value between 1 and 128."
+  echo "* Invalid input. Swap size must be a number between 1-128."
   exit 1
 fi
 
 # Confirm swap creation
-echo "* Do you want to create a $swap_size GB swap file? [Y/N]"
+echo "* Do you want to create a $swap_size GB swap file? [Y/N]: "
 read confirmation
 
 if [ "$confirmation" = "Y" ] || [ "$confirmation" = "y" ]; then
-  # Check free disk space
-  disk_space=$(df -k --output=avail / | tail -n 1)
-  required_space=$((swap_size * 1024 * 1024))
-  if [ $required_space -gt $disk_space ]; then
-    echo "Not enough free disk space to create $swap_size GB swap file. Required: $required_space KB. Available: $disk_space KB."
-    exit 1
-  fi
-  
   # Create swap file
   if ! fallocate -l "$swap_size"G /swapfile &> /dev/null; then
-    echo "Failed to create swap file."
+    echo "* Failed to create swap file."
     exit 1
   fi
   
   # Set permissions and format swap file
   chmod 600 /swapfile &> /dev/null
   if ! mkswap /swapfile &> /dev/null; then
-    echo "Failed to format swap file."
+    echo "* Failed to format swap file."
     exit 1
   fi
   
@@ -74,11 +105,18 @@ if [ "$confirmation" = "Y" ] || [ "$confirmation" = "y" ]; then
   fi
   echo "/swapfile swap swap defaults 0 0" | tee -a /etc/fstab &> /dev/null
   
-  # Show free memory and disk space
+  # Show free memory
+  echo "=========================================="
   show_free_memory
-  show_free_disk_space
+  echo "=========================================="
+  
+  # Show free disk space
+  echo "Free Disk Space:"
+  df -h / | awk '{print $4}' | tail -1
+  echo "=========================================="
   
   echo "[ ! ] - Swap file created successfully!"
 else
   echo "Cancelled."
 fi
+
