@@ -46,7 +46,7 @@ fi
 # Check if swap file already exists
 if [ -f "/swapfile" ]; then
   echo "* Swap file /swapfile already exists. Do you want to remove and recreate it? [Y/N]: "
-  read confirmation
+  read -p "* Input: " confirmation
   if [ "$confirmation" != "Y" ] && [ "$confirmation" != "y" ]; then
     echo "* Cancelled."
     exit 0
@@ -72,7 +72,7 @@ show_free_disk_space() {
 
 # Ask user for swap size
 echo "* How many GB of swap space do you want to create? [ ex: 8 ] | Input 1-128: "
-read swap_size
+read -p "* Input: " swap_size
 
 # Validate swap size
 if ! [[ "$swap_size" =~ ^[1-9][0-9]?$|^128$ ]]; then
@@ -82,7 +82,7 @@ fi
 
 # Confirm swap creation
 echo "* Do you want to create a $swap_size GB swap file? [Y/N]: "
-read confirmation
+read -p "* Input: " confirmation
 
 if [ "$confirmation" = "Y" ] || [ "$confirmation" = "y" ]; then
   # Create swap file
@@ -97,26 +97,23 @@ if [ "$confirmation" = "Y" ] || [ "$confirmation" = "y" ]; then
     echo "* Failed to format swap file."
     exit 1
   fi
-  
-  # Enable swap file and set to mount on boot
-  if ! swapon /swapfile &> /dev/null; then
-    echo "Failed to enable swap file."
-    exit 1
-  fi
-  echo "/swapfile swap swap defaults 0 0" | tee -a /etc/fstab &> /dev/null
-  
-  # Show free memory
-  echo "=========================================="
-  show_free_memory
-  echo "=========================================="
-  
-  # Show free disk space
-  echo "Free Disk Space:"
-  df -h / | awk '{print $4}' | tail -1
-  echo "=========================================="
-  
-  echo "[ ! ] - Swap file created successfully!"
-else
-  echo "Cancelled."
-fi
 
+# Enable swap file and set to mount on boot
+if ! swapon /swapfile &> /dev/null; then
+  echo "Failed to enable swap file."
+  exit 1
+fi
+echo "/swapfile swap swap defaults 0 0" | tee -a /etc/fstab &> /dev/null
+
+# Show free memory
+echo "* =========================================="
+echo "* Free Memory:"
+free -m
+
+# Show free disk space
+echo "* =========================================="
+echo "* Free Disk Space:"
+df -h --output=avail /
+
+# Success message
+echo "[ ! ] - Swap file created successfully!"
